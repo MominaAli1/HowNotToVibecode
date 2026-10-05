@@ -2,7 +2,8 @@
 
 Learn to vibecode without the mistakes that leak keys, data and money.
 
-Pick a topic: **Security**, **Prompting**, **Testing** or **Working with AI agents**.
+Pick a topic: **Security**, **Prompting**, **Prompting different AI models**,
+**Testing**, **Working with AI agents** or **What you share with AI**.
 The app asks how you work now, puts the lessons you need first, and teaches each
 one with a real case, its source, the steps, and the code developers usually use.
 
@@ -27,7 +28,7 @@ only ever shows its last 4 characters.
 | `style.css` | The look |
 | `js/library.js` | The 15 mistakes, each with a real case and source |
 | `js/rules.js` | Finds your app's features and matches mistakes |
-| `js/lessons.js` | The four topics, their questions, lessons and code samples |
+| `js/lessons.js` | The six topics, their questions, lessons and code samples |
 | `js/app.js` | Topics, lessons, report, better prompt and quiz |
 | `tests/run.js` | Tests for the matching rules and lesson content |
 

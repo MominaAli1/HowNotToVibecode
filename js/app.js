@@ -622,7 +622,9 @@
   }
 
   function codeBlock(sample) {
-    const pre = el("pre", { class: "code", tabindex: "0", "aria-label": sample.label }, [el("code", { text: sample.text })]);
+    // Prompts and Markdown are sentences, so they wrap. Code keeps its lines and scrolls.
+    const wraps = sample.kind === "prompt" || sample.file === "prompt" || /\.md$/.test(sample.file || "");
+    const pre = el("pre", { class: "code" + (wraps ? " wrap" : ""), tabindex: "0", "aria-label": sample.label }, [el("code", { text: sample.text })]);
     const status = el("span", { class: "copy-status", role: "status", "aria-live": "polite" });
     // Risky code gets no Copy button, so nobody pastes it by mistake.
     const actions = sample.kind === "risky" ? null : el("div", { class: "code-actions" }, [

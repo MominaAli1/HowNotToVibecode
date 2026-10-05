@@ -347,7 +347,7 @@ pre.code {
 .code-block.risky pre.code { border-left-color: var(--error); }
 .code-block.safer pre.code { border-left-color: #4caf6e; }
 pre.code:focus-visible { outline-offset: 2px; }
-pre.prompt-box { white-space: pre-wrap; overflow-wrap: anywhere; }
+pre.prompt-box, pre.code.wrap { white-space: pre-wrap; overflow-wrap: anywhere; }
 
 .code-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 8px; }
 .copy-status { color: var(--muted); font-size: 0.95rem; }
