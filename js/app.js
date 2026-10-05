@@ -348,18 +348,7 @@
 
   const quiz = { items: [], index: 0, results: [] };
 
-  // Fisher-Yates shuffle of the option positions.
-  function shuffledPositions(count) {
-    const order = [];
-    for (let i = 0; i < count; i++) order.push(i);
-    for (let i = count - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      const swap = order[i];
-      order[i] = order[j];
-      order[j] = swap;
-    }
-    return order;
-  }
+  const quizAnswer = $("quiz-answer");
 
   function startQuiz(items) {
     quiz.items = items;
@@ -376,49 +365,43 @@
     $("quiz-progress").textContent = "Question " + (quiz.index + 1) + " of " + quiz.items.length;
     $("quiz-why").textContent = item.reason;
     $("quiz-question").textContent = q.question;
+    quizAnswer.value = "";
+    $("quiz-ask").hidden = false;
     $("quiz-feedback").hidden = true;
-
-    const options = $("quiz-options");
-    options.replaceChildren();
-    for (const position of shuffledPositions(q.options.length)) {
-      options.appendChild(el("button", {
-        type: "button",
-        class: "option",
-        "data-position": position,
-        text: q.options[position],
-        on: { click: function () { answer(position); } }
-      }));
-    }
   }
 
-  function answer(chosen) {
+  // Shows the library's right answer next to what they typed. There's no AI,
+  // so the person decides whether they got it.
+  function revealAnswer() {
     const item = quiz.items[quiz.index];
     const q = item.mistake.quiz;
-    const isRight = chosen === q.answer;
-    quiz.results[quiz.index] = { mistake: item.mistake, right: isRight };
+    const typed = quizAnswer.value.trim();
 
-    for (const button of $("quiz-options").children) {
-      const position = Number(button.getAttribute("data-position"));
-      button.disabled = true;
-      if (position === q.answer) button.classList.add("right");
-      else if (position === chosen) button.classList.add("wrong");
-    }
-
-    const verdict = $("quiz-verdict");
-    verdict.className = "verdict " + (isRight ? "right" : "wrong");
-    verdict.textContent = isRight ? "Right!" : "Not quite.";
+    $("quiz-yours").textContent = typed;
+    $("quiz-yours-box").hidden = typed === "";
+    $("quiz-correct").textContent = q.options[q.answer];
     $("quiz-explanation").textContent = q.explanation;
     $("quiz-sources-label").textContent = item.mistake.sources.length === 1 ? "Source:" : "Sources:";
-    $("quiz-sources").replaceChildren.apply(
-      $("quiz-sources"),
-      item.mistake.sources.map(function (s) { return el("li", null, [sourceLink(s)]); })
-    );
-    $("quiz-next").textContent = quiz.index + 1 < quiz.items.length ? "Next" : "See my results";
+    $("quiz-sources").replaceChildren(...item.mistake.sources.map(function (s) {
+      return el("li", null, [sourceLink(s)]);
+    }));
+
+    $("quiz-ask").hidden = true;
     $("quiz-feedback").hidden = false;
-    verdict.focus();
+    $("quiz-correct-title").focus();
   }
 
-  $("quiz-next").addEventListener("click", function () {
+  $("quiz-reveal").addEventListener("click", revealAnswer);
+
+  quizAnswer.addEventListener("keydown", function (event) {
+    if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
+      event.preventDefault();
+      revealAnswer();
+    }
+  });
+
+  function markAndContinue(gotIt) {
+    quiz.results[quiz.index] = { mistake: quiz.items[quiz.index].mistake, right: gotIt };
     if (quiz.index + 1 < quiz.items.length) {
       quiz.index++;
       renderQuestion();
@@ -427,14 +410,17 @@
     } else {
       showResults();
     }
-  });
+  }
+
+  $("quiz-got").addEventListener("click", function () { markAndContinue(true); });
+  $("quiz-missed").addEventListener("click", function () { markAndContinue(false); });
 
   /* ---------------- 6. results ---------------- */
 
   function showResults() {
     const answered = quiz.results.filter(Boolean);
     const right = answered.filter(function (r) { return r.right; }).length;
-    $("results-score").textContent = "You got " + right + " of " + answered.length + " right.";
+    $("results-score").textContent = "You got " + right + " of " + answered.length + " right, by your own check.";
 
     const blind = $("results-blind");
     blind.replaceChildren();

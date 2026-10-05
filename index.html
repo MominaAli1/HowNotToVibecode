@@ -145,14 +145,35 @@
       <p class="progress" id="quiz-progress"></p>
       <p class="why"><strong>Why you're seeing this:</strong> <span id="quiz-why"></span></p>
       <p class="question" id="quiz-question"></p>
-      <div class="options" id="quiz-options" role="group" aria-labelledby="quiz-question"></div>
+
+      <div class="field" id="quiz-ask">
+        <label for="quiz-answer">Your answer</label>
+        <textarea id="quiz-answer" rows="3" spellcheck="true" autocomplete="off" aria-describedby="quiz-answer-note"
+          placeholder="Type your answer, or just think it through"></textarea>
+        <p class="note" id="quiz-answer-note">Only you see this. Press Ctrl+Enter to show the answer.</p>
+        <button type="button" class="button primary" id="quiz-reveal">Show the answer</button>
+      </div>
 
       <div class="feedback" id="quiz-feedback" hidden>
-        <p class="verdict" id="quiz-verdict" tabindex="-1"></p>
+        <div class="compare-answers">
+          <div class="answer-box yours" id="quiz-yours-box">
+            <h3>You said</h3>
+            <p id="quiz-yours"></p>
+          </div>
+          <div class="answer-box correct">
+            <h3 id="quiz-correct-title" tabindex="-1">The answer</h3>
+            <p id="quiz-correct"></p>
+          </div>
+        </div>
         <p id="quiz-explanation"></p>
         <p class="sources-label" id="quiz-sources-label">Source:</p>
         <ul class="sources" id="quiz-sources"></ul>
-        <button type="button" class="button primary" id="quiz-next">Next</button>
+
+        <p class="self-check" id="quiz-self-check">Did you get it?</p>
+        <div class="button-row self-check-buttons" role="group" aria-labelledby="quiz-self-check">
+          <button type="button" class="button primary" id="quiz-got">I got it</button>
+          <button type="button" class="button" id="quiz-missed">Not quite</button>
+        </div>
       </div>
     </section>
 
