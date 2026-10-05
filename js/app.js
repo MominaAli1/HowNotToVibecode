@@ -87,7 +87,7 @@
 
   const screens = Array.prototype.slice.call(document.querySelectorAll(".screen"));
   const trail = []; // screens visited, for the Back buttons
-  let current = "screen-home";
+  let current = "screen-landing";
 
   function show(id) {
     for (const screen of screens) screen.hidden = screen.id !== id;
@@ -475,7 +475,94 @@
   };
 
   // The module in progress. Lives only in memory.
-  const learn = { module: null, answers: {}, order: [], index: 0 };
+  // tool and saved rules last for the whole visit (in memory only), across topics.
+  const learn = { module: null, answers: {}, order: [], index: 0, tool: null, saved: new Map() };
+
+  /* ---------------- tell your AI ---------------- */
+
+  // Where each tool keeps standing instructions.
+  const TOOLS = [
+    { id: "claude-code", label: "Claude Code", file: "CLAUDE.md", after: " in your project's top folder. Claude Code reads it at the start of every session." },
+    { id: "cursor", label: "Cursor", file: "AGENTS.md", after: " in your project's top folder. Cursor's agent follows the rules in it." },
+    { id: "agents", label: "Codex, Copilot or another agent", file: "AGENTS.md", after: " in your project's top folder. More than 20 coding tools read it, including Codex and GitHub Copilot." },
+    { id: "chat", label: "A chat (ChatGPT, Claude, Gemini)", file: null, after: "" }
+  ];
+
+  function toolById(id) {
+    return TOOLS.find(function (t) { return t.id === id; }) || null;
+  }
+
+  function ruleKey(mod, lesson) {
+    return mod.id + "/" + lesson.id;
+  }
+
+  // "Where it goes" for the chosen tool, as page nodes (file names in code style).
+  function whereText(tool) {
+    const label = el("strong", { text: "Where it goes: " });
+    if (!tool) return [label, "paste it into your next prompt, or pick your tool above to keep it for good."];
+    if (!tool.file) return [label, "paste it at the start of your chat. To use it every time, add it to your project's custom instructions."];
+    return [label, "add it to ", el("code", { text: tool.file }), tool.after];
+  }
+
+  function tellAi(lesson, line) {
+    const key = ruleKey(learn.module, lesson);
+    const box = el("pre", { class: "code prompt-box", tabindex: "0", "aria-label": "Line to give your AI" }, [el("code")]);
+    const where = el("p", { class: "where" });
+    const status = el("span", { class: "copy-status", role: "status", "aria-live": "polite" });
+    const count = el("p", { class: "note" });
+
+    const toolButtons = TOOLS.map(function (tool) {
+      return el("button", {
+        type: "button", class: "tool", "aria-pressed": "false", text: tool.label,
+        on: { click: function () { learn.tool = tool.id; update(); } }
+      });
+    });
+
+    const saveButton = el("button", {
+      type: "button", class: "button small save-rule", "aria-pressed": "false",
+      on: {
+        click: function () {
+          if (learn.saved.has(key)) learn.saved.delete(key);
+          else learn.saved.set(key, line);
+          update();
+        }
+      }
+    });
+
+    function update() {
+      const tool = toolById(learn.tool);
+      toolButtons.forEach(function (button, i) {
+        button.setAttribute("aria-pressed", String(TOOLS[i].id === learn.tool));
+      });
+      // In a rules file it's a list item; in a chat it's a plain sentence.
+      box.firstChild.textContent = tool && tool.file ? "- " + line : line;
+      where.replaceChildren(...whereText(tool));
+      const isSaved = learn.saved.has(key);
+      saveButton.setAttribute("aria-pressed", String(isSaved));
+      saveButton.textContent = isSaved ? "✓ Saved to my rules" : "Save to my rules";
+      count.replaceChildren(
+        el("span", { class: "rule-count", text: plural(learn.saved.size, "rule") + " saved" }),
+        " so far. You get them in one block when you finish the topic."
+      );
+      status.textContent = "";
+    }
+    update();
+
+    return el("section", { class: "tell-ai", "aria-labelledby": "tell-ai-title" }, [
+      el("h3", { id: "tell-ai-title", text: "Tell your AI" }),
+      el("p", { text: "One line that makes your AI do this every time, without you remembering to ask." }),
+      el("p", { class: "tool-label", id: "tool-label", text: "Which AI do you use?" }),
+      el("div", { class: "tools", role: "group", "aria-labelledby": "tool-label" }, toolButtons),
+      where,
+      box,
+      el("div", { class: "code-actions" }, [
+        el("button", { type: "button", class: "button small", text: "Copy", on: { click: function () { copyFrom(box, status); } } }),
+        saveButton,
+        status
+      ]),
+      count
+    ]);
+  }
 
   function sourceList(sources) {
     return el("ul", { class: "sources" }, sources.map(function (s) { return el("li", null, [sourceLink(s)]); }));
@@ -651,9 +738,6 @@
     $("lesson-progress").textContent = learn.module.title + ": lesson " + (learn.index + 1) + " of " + learn.order.length;
     $("lesson-title").textContent = lesson.title;
 
-    const promptBox = el("pre", { class: "code prompt-box", tabindex: "0", "aria-label": "Line to give your AI" }, [el("code", { text: content.prompt })]);
-    const promptStatus = el("span", { class: "copy-status", role: "status", "aria-live": "polite" });
-
     $("lesson-body").replaceChildren(
       el("div", { class: "answer-note" }, [
         chip(item.answer.status),
@@ -669,13 +753,7 @@
       el("ol", { class: "steps" }, lesson.steps.map(function (step) { return el("li", { text: step }); })),
       el("h3", { text: "The code" }),
       ...lesson.code.map(codeBlock),
-      el("h3", { text: "Tell your AI" }),
-      el("p", { class: "note", text: "Paste this into your prompt, or into your rules file so it applies every time." }),
-      promptBox,
-      el("div", { class: "code-actions" }, [
-        el("button", { type: "button", class: "button small", text: "Copy", on: { click: function () { copyFrom(promptBox, promptStatus); } } }),
-        promptStatus
-      ])
+      tellAi(lesson, content.prompt)
     );
 
     $("lesson-prev").hidden = learn.index === 0;
@@ -704,10 +782,27 @@
 
   function showModuleDone() {
     const mod = learn.module;
+    const tool = toolById(learn.tool);
+    const saved = mod.lessons.filter(function (lesson) { return learn.saved.has(ruleKey(mod, lesson)); });
+    const chosen = saved.length ? saved : mod.lessons;
+
     $("done-title").textContent = "You finished: " + mod.title;
-    const lines = mod.lessons.map(function (lesson) { return "- " + lessonContent(lesson).prompt; });
-    $("done-rules").value = "## " + mod.title + " rules\n" + lines.join("\n");
+    $("done-lead").textContent = saved.length
+      ? "You saved " + plural(saved.length, "rule") + " from this topic. Here they are in one block."
+      : "You didn't save any rules, so here's every line from this topic in one block.";
+    $("done-where").replaceChildren(...whereText(tool));
+    const lines = chosen.map(function (lesson) { return "- " + lessonContent(lesson).prompt; });
+    $("done-rules").value = (tool && tool.file ? "## " + mod.title + "\n" : "") + lines.join("\n");
     $("screen-module-done").querySelector("[role=status]").textContent = "";
     go("screen-module-done");
   }
+
+  /* ---------------- landing ---------------- */
+
+  (function renderLanding() {
+    const lessons = MODULES.reduce(function (sum, mod) { return sum + mod.lessons.length; }, 0);
+    $("landing-count").textContent = MODULES.length + " topics, " + lessons + " lessons, real cases with sources";
+  })();
+
+  $("lets-go").addEventListener("click", function () { go("screen-home"); });
 })();

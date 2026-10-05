@@ -7,16 +7,30 @@
   <meta http-equiv="Content-Security-Policy" content="connect-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'">
   <meta name="referrer" content="no-referrer">
   <meta name="description" content="Learn to vibecode safely: security, prompting, testing and working with AI agents, with real cases and the code developers use. Or paste a chat to find its mistakes.">
-  <title>How Not to Vibecode</title>
+  <title>How NOT To Vibecode</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <main id="app">
 
+    <!-- Landing -->
+    <section class="screen landing" id="screen-landing" aria-labelledby="landing-title">
+      <h1 class="logo" id="landing-title" tabindex="-1">How <span class="logo-not">NOT</span> To Vibecode</h1>
+      <p class="landing-tagline">Learn the mistakes that leak keys, data and money, before your AI makes them for you.</p>
+      <ul class="landing-points">
+        <li id="landing-count">Real cases, with sources</li>
+        <li>The code developers actually use</li>
+        <li>Lines to paste straight into your AI</li>
+      </ul>
+      <button type="button" class="button primary go" id="lets-go">Lesgoooooo</button>
+      <p class="note">Free. Nothing you type leaves your browser.</p>
+    </section>
+
     <!-- Home: pick a module -->
-    <section class="screen" id="screen-home" aria-labelledby="home-title">
-      <h1 id="home-title" tabindex="-1">How Not to Vibecode</h1>
-      <p class="lead">Learn to vibecode without the mistakes that leak keys, data and money. Pick a topic. We'll ask how you work now, then teach you what developers do instead, with the code they use.</p>
+    <section class="screen" id="screen-home" aria-labelledby="home-title" hidden>
+      <p class="logo small">How <span class="logo-not">NOT</span> To Vibecode</p>
+      <h1 id="home-title" tabindex="-1">Pick a topic</h1>
+      <p class="lead">We'll ask how you work now, then teach you what developers do instead, with the code they use.</p>
       <div class="modules" id="module-list"></div>
       <p class="note">Nothing you type or paste leaves your browser.</p>
     </section>
@@ -57,7 +71,8 @@
     <section class="screen" id="screen-module-done" aria-labelledby="done-title" hidden>
       <button type="button" class="button back" data-back>Back</button>
       <h2 id="done-title" tabindex="-1"></h2>
-      <p class="lead">Here's every line from this module to give your AI, in one block. Paste it into your rules file (AGENTS.md or CLAUDE.md) so it applies every time.</p>
+      <p class="lead" id="done-lead"></p>
+      <p class="where" id="done-where"></p>
       <textarea class="text-box" id="done-rules" readonly rows="12" aria-label="Lines to give your AI"></textarea>
       <div class="copy-row">
         <button type="button" class="button" data-copy="done-rules">Copy</button>

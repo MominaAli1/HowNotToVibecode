@@ -1,4 +1,4 @@
-# How Not to Vibecode
+# How NOT To Vibecode
 
 Learn to vibecode without the mistakes that leak keys, data and money.
 
