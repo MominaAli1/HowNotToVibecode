@@ -207,6 +207,32 @@
 
   </main>
 
+  <!-- A cat that walks along the bottom. Decoration only, so screen readers skip it. -->
+  <div class="cat-track" aria-hidden="true">
+    <div class="cat">
+      <svg viewBox="0 0 120 72" xmlns="http://www.w3.org/2000/svg" focusable="false">
+        <g class="bob">
+          <path class="tail" d="M26 38 Q6 32 12 10" fill="none" stroke="#cbb8f0" stroke-width="7" stroke-linecap="round"/>
+          <rect class="leg b" x="30" y="44" width="7" height="20" rx="3.5" fill="#b3a0dc"/>
+          <rect class="leg a" x="62" y="44" width="7" height="20" rx="3.5" fill="#b3a0dc"/>
+          <ellipse cx="52" cy="40" rx="30" ry="14" fill="#cbb8f0"/>
+          <rect class="leg a" x="38" y="46" width="7" height="19" rx="3.5" fill="#cbb8f0"/>
+          <rect class="leg b" x="70" y="46" width="7" height="19" rx="3.5" fill="#cbb8f0"/>
+          <polygon points="75,21 77,5 87,16" fill="#cbb8f0"/>
+          <polygon points="89,15 98,4 99,21" fill="#cbb8f0"/>
+          <polygon points="78,18 79,10 84,15" fill="#f7a8c8"/>
+          <polygon points="91,15 96,9 96,18" fill="#f7a8c8"/>
+          <circle cx="87" cy="29" r="15" fill="#cbb8f0"/>
+          <circle cx="86" cy="27" r="2.3" fill="#1b0f33"/>
+          <circle cx="95" cy="27" r="2.3" fill="#1b0f33"/>
+          <polygon points="99,32 103,31 101,35" fill="#f7a8c8"/>
+          <path d="M98 35 L112 33 M98 37 L112 39" stroke="#f4effc" stroke-width="1" stroke-linecap="round"/>
+        </g>
+      </svg>
+    </div>
+  </div>
+  <button type="button" class="cat-toggle" id="cat-toggle" aria-pressed="false">Pause the cat</button>
+
   <script src="js/library.js"></script>
   <script src="js/rules.js"></script>
   <script src="js/lessons.js"></script>

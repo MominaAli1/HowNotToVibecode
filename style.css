@@ -461,7 +461,94 @@ body {
 .save-rule[aria-pressed="true"] { background: var(--accent); color: var(--on-accent); }
 .rule-count { font-weight: 600; color: var(--accent); }
 
+/* ---------- walking cat ---------- */
+
+/* Page content sits above the cat, with room at the bottom so the cat
+   never covers the last button. */
+main { position: relative; z-index: 1; padding-bottom: 104px; }
+
+.cat-track {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 64px;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+}
+.cat {
+  position: absolute;
+  left: 0;
+  bottom: 2px;
+  width: 84px;
+  animation: cat-walk 26s linear infinite;
+}
+.cat svg { display: block; width: 100%; height: auto; overflow: visible; }
+
+/* Walks right, turns around, walks back. */
+@keyframes cat-walk {
+  0%   { transform: translateX(-100px) scaleX(1); }
+  48%  { transform: translateX(calc(100vw + 16px)) scaleX(1); }
+  50%  { transform: translateX(calc(100vw + 16px)) scaleX(-1); }
+  98%  { transform: translateX(-100px) scaleX(-1); }
+  100% { transform: translateX(-100px) scaleX(1); }
+}
+
+.cat .leg {
+  transform-box: fill-box;
+  transform-origin: 50% 0;
+  animation: cat-step 0.45s ease-in-out infinite alternate;
+}
+.cat .leg.b { animation-delay: -0.45s; }
+@keyframes cat-step {
+  from { transform: rotate(20deg); }
+  to   { transform: rotate(-20deg); }
+}
+
+.cat .tail {
+  transform-box: fill-box;
+  transform-origin: 100% 100%;
+  animation: cat-tail 1.3s ease-in-out infinite alternate;
+}
+@keyframes cat-tail {
+  from { transform: rotate(-10deg); }
+  to   { transform: rotate(12deg); }
+}
+
+.cat .bob { animation: cat-bob 0.225s ease-in-out infinite alternate; }
+@keyframes cat-bob {
+  to { transform: translateY(1.5px); }
+}
+
+body.cat-paused .cat,
+body.cat-paused .cat * { animation-play-state: paused; }
+
+.cat-toggle {
+  position: fixed;
+  right: 12px;
+  bottom: 12px;
+  z-index: 2;
+  font: inherit;
+  font-size: 0.8rem;
+  min-height: 32px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+}
+.cat-toggle:hover { color: var(--text); border-color: var(--accent); }
+
+@media print {
+  .cat-track, .cat-toggle { display: none; }
+}
+
 @media (prefers-reduced-motion: reduce) {
+  /* The cat sits still, so there's nothing to pause. */
+  .cat { left: 16px; }
+  .cat-toggle { display: none; }
   *, *::before, *::after { transition: none !important; animation: none !important; }
   .logo-not { transform: none; }
 }

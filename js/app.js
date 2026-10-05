@@ -805,4 +805,13 @@
   })();
 
   $("lets-go").addEventListener("click", function () { go("screen-home"); });
+
+  /* ---------------- walking cat ---------------- */
+
+  // Lets people stop the moving cat if it distracts them.
+  $("cat-toggle").addEventListener("click", function () {
+    const paused = document.body.classList.toggle("cat-paused");
+    this.setAttribute("aria-pressed", String(paused));
+    this.textContent = paused ? "Let the cat walk" : "Pause the cat";
+  });
 })();
