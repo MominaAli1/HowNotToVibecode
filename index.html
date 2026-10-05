@@ -82,6 +82,37 @@
       <button type="button" class="button primary" id="start-quiz">Quiz me on my mistakes</button>
     </section>
 
+    <!-- 5. Quiz -->
+    <section class="screen" id="screen-quiz" aria-labelledby="quiz-title" hidden>
+      <button type="button" class="button back" data-back>Back</button>
+      <h2 id="quiz-title" tabindex="-1">Quiz</h2>
+      <p class="progress" id="quiz-progress"></p>
+      <p class="why"><strong>Why you're seeing this:</strong> <span id="quiz-why"></span></p>
+      <p class="question" id="quiz-question"></p>
+      <div class="options" id="quiz-options" role="group" aria-labelledby="quiz-question"></div>
+
+      <div class="feedback" id="quiz-feedback" hidden>
+        <p class="verdict" id="quiz-verdict" tabindex="-1"></p>
+        <p id="quiz-explanation"></p>
+        <p class="sources-label" id="quiz-sources-label">Source:</p>
+        <ul class="sources" id="quiz-sources"></ul>
+        <button type="button" class="button primary" id="quiz-next">Next</button>
+      </div>
+    </section>
+
+    <!-- 6. Results -->
+    <section class="screen" id="screen-results" aria-labelledby="results-title" hidden>
+      <button type="button" class="button back" data-back>Back</button>
+      <h2 id="results-title" tabindex="-1">Your results</h2>
+      <p class="summary" id="results-score"></p>
+      <h3>Your blind spots</h3>
+      <div id="results-blind"></div>
+      <div class="actions">
+        <button type="button" class="button primary" id="full-quiz">Take the full quiz (all 15)</button>
+        <button type="button" class="button" id="start-over">Start over</button>
+      </div>
+    </section>
+
   </main>
 
   <script src="js/library.js"></script>

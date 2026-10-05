@@ -313,11 +313,135 @@
 
   /* ---------------- 5. quiz ---------------- */
 
+  const FULL_QUIZ_REASON = "This is part of the full quiz. It didn't show up in what you wrote.";
+
+  // In the full quiz, mistakes that matched still show their real reason.
   function fullQuizItem(m) {
-    return { mistake: m, reason: null };
+    const match = state.matches.find(function (x) { return x.id === m.id; });
+    return { mistake: m, reason: match ? match.reason : FULL_QUIZ_REASON };
+  }
+
+  const quiz = { items: [], index: 0, results: [] };
+
+  // Fisher-Yates shuffle of the option positions.
+  function shuffledPositions(count) {
+    const order = [];
+    for (let i = 0; i < count; i++) order.push(i);
+    for (let i = count - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const swap = order[i];
+      order[i] = order[j];
+      order[j] = swap;
+    }
+    return order;
   }
 
   function startQuiz(items) {
-    // The quiz screen comes in the next step.
+    quiz.items = items;
+    quiz.index = 0;
+    quiz.results = [];
+    renderQuestion();
+    go("screen-quiz");
   }
+
+  function renderQuestion() {
+    const item = quiz.items[quiz.index];
+    const q = item.mistake.quiz;
+
+    $("quiz-progress").textContent = "Question " + (quiz.index + 1) + " of " + quiz.items.length;
+    $("quiz-why").textContent = item.reason;
+    $("quiz-question").textContent = q.question;
+    $("quiz-feedback").hidden = true;
+
+    const options = $("quiz-options");
+    options.replaceChildren();
+    for (const position of shuffledPositions(q.options.length)) {
+      options.appendChild(el("button", {
+        type: "button",
+        class: "option",
+        "data-position": position,
+        text: q.options[position],
+        on: { click: function () { answer(position); } }
+      }));
+    }
+  }
+
+  function answer(chosen) {
+    const item = quiz.items[quiz.index];
+    const q = item.mistake.quiz;
+    const isRight = chosen === q.answer;
+    quiz.results[quiz.index] = { mistake: item.mistake, right: isRight };
+
+    for (const button of $("quiz-options").children) {
+      const position = Number(button.getAttribute("data-position"));
+      button.disabled = true;
+      if (position === q.answer) button.classList.add("right");
+      else if (position === chosen) button.classList.add("wrong");
+    }
+
+    const verdict = $("quiz-verdict");
+    verdict.className = "verdict " + (isRight ? "right" : "wrong");
+    verdict.textContent = isRight ? "Right!" : "Not quite.";
+    $("quiz-explanation").textContent = q.explanation;
+    $("quiz-sources-label").textContent = item.mistake.sources.length === 1 ? "Source:" : "Sources:";
+    $("quiz-sources").replaceChildren.apply(
+      $("quiz-sources"),
+      item.mistake.sources.map(function (s) { return el("li", null, [sourceLink(s)]); })
+    );
+    $("quiz-next").textContent = quiz.index + 1 < quiz.items.length ? "Next" : "See my results";
+    $("quiz-feedback").hidden = false;
+    verdict.focus();
+  }
+
+  $("quiz-next").addEventListener("click", function () {
+    if (quiz.index + 1 < quiz.items.length) {
+      quiz.index++;
+      renderQuestion();
+      window.scrollTo(0, 0);
+      $("quiz-title").focus({ preventScroll: true });
+    } else {
+      showResults();
+    }
+  });
+
+  /* ---------------- 6. results ---------------- */
+
+  function showResults() {
+    const answered = quiz.results.filter(Boolean);
+    const right = answered.filter(function (r) { return r.right; }).length;
+    $("results-score").textContent = "You got " + right + " of " + answered.length + " right.";
+
+    const blind = $("results-blind");
+    blind.replaceChildren();
+    for (const field of FIELDS) {
+      const asked = answered.filter(function (r) { return r.mistake.field === field.key; });
+      if (asked.length === 0) continue;
+      const missed = asked.filter(function (r) { return !r.right; });
+      blind.appendChild(el("div", { class: "blind" }, [
+        el("h4", { text: field.name }),
+        missed.length === 0
+          ? el("p", { text: "None. You got every " + field.name.toLowerCase() + " question right." })
+          : el("ul", null, missed.map(function (r) { return el("li", { text: r.mistake.title }); }))
+      ]));
+    }
+    go("screen-results");
+  }
+
+  $("full-quiz").addEventListener("click", function () {
+    startQuiz(MISTAKES.map(fullQuizItem));
+  });
+
+  $("start-over").addEventListener("click", function () {
+    // Forget everything from this round.
+    state.text = "";
+    state.ticked = {};
+    state.matches = [];
+    quiz.items = [];
+    quiz.results = [];
+    input.value = "";
+    $("prompt-before").textContent = "";
+    promptAfter.value = "";
+    trail.length = 0;
+    show("screen-input");
+  });
 })();
