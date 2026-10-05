@@ -143,5 +143,75 @@ test("Every mistake in the library is complete and uses known features", functio
   });
 });
 
+/* ---------------- learning modules ---------------- */
+
+require(path.join(__dirname, "..", "js", "lessons.js"));
+const MODULES = window.MODULES;
+
+// Every piece of text a person can see in the lessons (links' web addresses aside).
+function visibleStrings(value, key, out) {
+  if (typeof value === "string") {
+    if (key !== "url") out.push(value);
+  } else if (Array.isArray(value)) {
+    value.forEach(function (v) { visibleStrings(v, key, out); });
+  } else if (value && typeof value === "object") {
+    Object.keys(value).forEach(function (k) { visibleStrings(value[k], k, out); });
+  }
+  return out;
+}
+
+test("Every module and lesson is complete", function () {
+  const mistakeIds = MISTAKES.map(function (m) { return m.id; });
+  const kinds = ["risky", "safer", "command", "prompt", "file"];
+  assert(MODULES.length >= 4, "expected at least 4 modules");
+  MODULES.forEach(function (mod) {
+    assert(mod.id && mod.title && mod.tagline && mod.intro, mod.id + " is missing a title, tagline or intro");
+    assert(mod.introSources.length > 0, mod.id + " intro has no source");
+    assert(mod.lessons.length > 0, mod.id + " has no lessons");
+    mod.lessons.forEach(function (lesson) {
+      const where = mod.id + "/" + lesson.id;
+      if (lesson.mistake) assert(mistakeIds.indexOf(lesson.mistake) !== -1, where + " links to unknown mistake " + lesson.mistake);
+      else assert(lesson.why && lesson.prompt && lesson.cases && lesson.cases.length, where + " needs why, prompt and cases");
+      assert(lesson.steps.length > 0, where + " has no steps");
+      assert(lesson.code.length > 0, where + " has no code");
+      lesson.code.forEach(function (c) {
+        assert(kinds.indexOf(c.kind) !== -1 && c.label && c.text, where + " has a bad code sample");
+      });
+      const opts = lesson.question.options;
+      assert(lesson.question.text && opts.length >= 2, where + " needs a question with options");
+      assert(opts.some(function (o) { return o[1] === "gap"; }), where + " has no answer that shows a gap");
+      opts.forEach(function (o) { assert(["gap", "ok", "skip"].indexOf(o[1]) !== -1, where + " has a bad answer status"); });
+    });
+  });
+});
+
+test("Every source link in the lessons is a web link", function () {
+  MODULES.forEach(function (mod) {
+    const sources = mod.introSources.slice();
+    mod.lessons.forEach(function (lesson) {
+      (lesson.cases || []).forEach(function (c) { sources.push.apply(sources, c.sources); });
+    });
+    sources.forEach(function (s) {
+      assert(s && s.label && /^https:\/\//.test(s.url), mod.id + " has a bad source: " + JSON.stringify(s));
+    });
+  });
+});
+
+test("Lessons contain nothing that looks like a real secret key", function () {
+  const keyPatterns = MISTAKES.find(function (m) { return m.id === "secret-in-code"; })
+    .foundPatterns.filter(function (p) { return p.source !== "service_role"; });
+  const text = visibleStrings(MODULES, "", []).join("\n");
+  keyPatterns.forEach(function (p) {
+    assert(!new RegExp(p.source, p.flags).test(text), "found text matching " + p);
+  });
+});
+
+test("Lesson text has no em dashes and never says \"worth\" or \"built\"", function () {
+  const bad = visibleStrings(MODULES, "", []).filter(function (s) {
+    return /—/.test(s) || /\bworth\b/i.test(s) || /\bbuilt\b/i.test(s);
+  });
+  assert(bad.length === 0, "found in: " + bad.map(function (s) { return s.slice(0, 60); }).join(" | "));
+});
+
 console.log("\n" + (failures === 0 ? "All tests passed." : failures + " test(s) failed."));
 process.exitCode = failures === 0 ? 0 : 1;

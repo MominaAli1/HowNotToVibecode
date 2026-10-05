@@ -6,16 +6,72 @@
   <!-- Stops the page from sending anything over the network, so pasted text stays in the browser. -->
   <meta http-equiv="Content-Security-Policy" content="connect-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'">
   <meta name="referrer" content="no-referrer">
-  <meta name="description" content="Paste a chat with your AI coding tool and see the security and prompting mistakes in it, with real cases, a better prompt and a quiz.">
+  <meta name="description" content="Learn to vibecode safely: security, prompting, testing and working with AI agents, with real cases and the code developers use. Or paste a chat to find its mistakes.">
   <title>How Not to Vibecode</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <main id="app">
 
-    <!-- 1. Input -->
-    <section class="screen" id="screen-input" aria-labelledby="input-title">
-      <h1 id="input-title" tabindex="-1">How Not to Vibecode</h1>
+    <!-- Home: pick a module -->
+    <section class="screen" id="screen-home" aria-labelledby="home-title">
+      <h1 id="home-title" tabindex="-1">How Not to Vibecode</h1>
+      <p class="lead">Learn to vibecode without the mistakes that leak keys, data and money. Pick a topic. We'll ask how you work now, then teach you what developers do instead, with the code they use.</p>
+      <div class="modules" id="module-list"></div>
+      <p class="note">Nothing you type or paste leaves your browser.</p>
+    </section>
+
+    <!-- Module: how do you work now? -->
+    <section class="screen" id="screen-practice" aria-labelledby="practice-title" hidden>
+      <button type="button" class="button back" data-back>Back</button>
+      <h2 id="practice-title" tabindex="-1"></h2>
+      <p class="lead" id="practice-intro"></p>
+      <p class="intro-sources" id="practice-sources"></p>
+      <div id="practice-questions"></div>
+      <p class="error" id="practice-error" role="alert" hidden></p>
+      <button type="button" class="button primary" id="practice-done">Show my lessons</button>
+    </section>
+
+    <!-- Module: your lesson plan -->
+    <section class="screen" id="screen-plan" aria-labelledby="plan-title" hidden>
+      <button type="button" class="button back" data-back>Back</button>
+      <h2 id="plan-title" tabindex="-1"></h2>
+      <p class="summary" id="plan-summary"></p>
+      <ol class="plan" id="plan-list"></ol>
+      <button type="button" class="button primary" id="plan-start">Start lesson 1</button>
+    </section>
+
+    <!-- Module: one lesson -->
+    <section class="screen" id="screen-lesson" aria-labelledby="lesson-title" hidden>
+      <button type="button" class="button back" data-back>Back to the plan</button>
+      <p class="progress" id="lesson-progress"></p>
+      <h2 id="lesson-title" tabindex="-1"></h2>
+      <div id="lesson-body"></div>
+      <div class="lesson-nav">
+        <button type="button" class="button" id="lesson-prev">Previous lesson</button>
+        <button type="button" class="button primary" id="lesson-next">Next lesson</button>
+      </div>
+    </section>
+
+    <!-- Module: finished -->
+    <section class="screen" id="screen-module-done" aria-labelledby="done-title" hidden>
+      <button type="button" class="button back" data-back>Back</button>
+      <h2 id="done-title" tabindex="-1"></h2>
+      <p class="lead">Here's every line from this module to give your AI, in one block. Paste it into your rules file (AGENTS.md or CLAUDE.md) so it applies every time.</p>
+      <textarea class="text-box" id="done-rules" readonly rows="12" aria-label="Lines to give your AI"></textarea>
+      <div class="copy-row">
+        <button type="button" class="button" data-copy="done-rules">Copy</button>
+        <p class="note" role="status" aria-live="polite"></p>
+      </div>
+      <div class="actions">
+        <button type="button" class="button primary" data-home>Pick another topic</button>
+      </div>
+    </section>
+
+    <!-- Checker 1. Input -->
+    <section class="screen" id="screen-input" aria-labelledby="input-title" hidden>
+      <button type="button" class="button back" data-back>Back</button>
+      <h2 id="input-title" tabindex="-1">Check a chat or prompt</h2>
       <p class="lead">Paste a chat you had with an AI coding tool, or describe what you ask it to make. You'll see the mistakes in it, a better prompt, and a quiz on what you missed.</p>
 
       <div class="field">
@@ -73,7 +129,7 @@
           <h3><label for="prompt-after">Better prompt</label></h3>
           <textarea class="text-box" id="prompt-after" readonly rows="14"></textarea>
           <div class="copy-row">
-            <button type="button" class="button" id="copy-prompt">Copy</button>
+            <button type="button" class="button" id="copy-prompt" data-copy="prompt-after">Copy</button>
             <p class="note" id="copy-status" role="status" aria-live="polite"></p>
           </div>
         </div>
@@ -117,6 +173,7 @@
 
   <script src="js/library.js"></script>
   <script src="js/rules.js"></script>
+  <script src="js/lessons.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

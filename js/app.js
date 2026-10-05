@@ -87,7 +87,7 @@
 
   const screens = Array.prototype.slice.call(document.querySelectorAll(".screen"));
   const trail = []; // screens visited, for the Back buttons
-  let current = "screen-input";
+  let current = "screen-home";
 
   function show(id) {
     for (const screen of screens) screen.hidden = screen.id !== id;
@@ -104,12 +104,64 @@
   }
 
   function back() {
-    show(trail.length ? trail.pop() : "screen-input");
+    show(trail.length ? trail.pop() : "screen-home");
+  }
+
+  function home() {
+    trail.length = 0;
+    show("screen-home");
   }
 
   document.addEventListener("click", function (event) {
-    if (event.target.closest("[data-back]")) back();
+    const target = event.target;
+    if (target.closest("[data-back]")) back();
+    else if (target.closest("[data-home]")) home();
+    else {
+      const copyButton = target.closest("[data-copy]");
+      if (copyButton) copyFrom($(copyButton.getAttribute("data-copy")), copyButton.parentElement.querySelector("[role=status]"));
+    }
   });
+
+  /* ---------------- copying ---------------- */
+
+  function selectAll(source) {
+    if (typeof source.select === "function") {
+      source.focus();
+      source.select();
+      source.setSelectionRange(0, source.value.length);
+      return;
+    }
+    const range = document.createRange();
+    range.selectNodeContents(source);
+    const selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+  }
+
+  // Copies the text of a textarea or code box. If the browser won't copy,
+  // the text gets selected so the person can press Ctrl+C themselves.
+  function copyFrom(source, status) {
+    const text = typeof source.value === "string" ? source.value : source.textContent;
+    let settled = false;
+    const fallback = function () {
+      if (settled) return;
+      settled = true;
+      selectAll(source);
+      status.textContent = "Selected. Press Ctrl+C (or Cmd+C on a Mac) to copy.";
+    };
+    if (!navigator.clipboard || !navigator.clipboard.writeText) {
+      fallback();
+      return;
+    }
+    status.textContent = "";
+    // Some browsers never answer the copy request, so don't wait forever.
+    setTimeout(fallback, 1500);
+    navigator.clipboard.writeText(text).then(function () {
+      if (settled) return;
+      settled = true;
+      status.textContent = "Copied.";
+    }, fallback);
+  }
 
   /* ---------------- 1. input ---------------- */
 
@@ -277,33 +329,6 @@
     go("screen-prompt");
   }
 
-  function selectPrompt() {
-    promptAfter.focus();
-    promptAfter.select();
-    promptAfter.setSelectionRange(0, promptAfter.value.length);
-  }
-
-  $("copy-prompt").addEventListener("click", function () {
-    let settled = false;
-    const fallback = function () {
-      if (settled) return;
-      settled = true;
-      selectPrompt();
-      copyStatus.textContent = "Selected. Press Ctrl+C (or Cmd+C on a Mac) to copy.";
-    };
-    if (!navigator.clipboard || !navigator.clipboard.writeText) {
-      fallback();
-      return;
-    }
-    copyStatus.textContent = "";
-    // Some browsers never answer the copy request, so don't wait forever.
-    setTimeout(fallback, 1500);
-    navigator.clipboard.writeText(promptAfter.value).then(function () {
-      if (settled) return;
-      settled = true;
-      copyStatus.textContent = "Copied.";
-    }, fallback);
-  });
 
   $("start-quiz").addEventListener("click", function () {
     startQuiz(state.matches.map(function (match) {
@@ -441,7 +466,260 @@
     input.value = "";
     $("prompt-before").textContent = "";
     promptAfter.value = "";
-    trail.length = 0;
-    show("screen-input");
+    home();
   });
+
+  /* ================= learning modules ================= */
+
+  const MODULES = window.MODULES || [];
+
+  // How each answer shapes the plan. Lower rank comes first.
+  const STATUS = {
+    gap: { chip: "Start here", chipClass: "found", rank: 0 },
+    skip: { chip: "Good to know", chipClass: "never", rank: 1 },
+    ok: { chip: "You already do this", chipClass: "never", rank: 2 }
+  };
+
+  const CODE_KINDS = {
+    risky: "Risky",
+    safer: "Safer",
+    command: "Run this",
+    prompt: "Prompt",
+    file: "Example file"
+  };
+
+  // The module in progress. Lives only in memory.
+  const learn = { module: null, answers: {}, order: [], index: 0 };
+
+  function sourceList(sources) {
+    return el("ul", { class: "sources" }, sources.map(function (s) { return el("li", null, [sourceLink(s)]); }));
+  }
+
+  /* ---------------- home ---------------- */
+
+  function moduleCard(title, tagline, count, onClick, extraClass) {
+    return el("button", { type: "button", class: "module-card" + (extraClass ? " " + extraClass : ""), on: { click: onClick } }, [
+      el("span", { class: "module-title", text: title }),
+      el("span", { class: "module-tagline", text: tagline }),
+      el("span", { class: "module-count", text: count })
+    ]);
+  }
+
+  (function renderHome() {
+    const list = $("module-list");
+    for (const mod of MODULES) {
+      list.appendChild(moduleCard(mod.title, mod.tagline, plural(mod.lessons.length, "lesson"), function () { startModule(mod); }));
+    }
+    list.appendChild(moduleCard(
+      "Check a chat or prompt",
+      "Paste what you told your AI and see the mistakes in it",
+      MISTAKES.length + " mistakes it can find",
+      function () { go("screen-input"); },
+      "checker"
+    ));
+  })();
+
+  /* ---------------- how do you work now? ---------------- */
+
+  const practiceError = $("practice-error");
+
+  function startModule(mod) {
+    learn.module = mod;
+    learn.answers = {};
+    learn.order = [];
+    learn.index = 0;
+    renderPractice(mod);
+    go("screen-practice");
+  }
+
+  function renderPractice(mod) {
+    $("practice-title").textContent = mod.title + ": how do you work now?";
+    $("practice-intro").textContent = mod.intro;
+    $("practice-sources").replaceChildren(
+      el("span", { text: mod.introSources.length === 1 ? "Source: " : "Sources: " }),
+      ...mod.introSources.map(function (s, i) {
+        return el("span", null, [i > 0 ? ", " : "", sourceLink(s)]);
+      })
+    );
+    practiceError.hidden = true;
+
+    const questions = $("practice-questions");
+    questions.replaceChildren();
+    mod.lessons.forEach(function (lesson, i) {
+      const name = "q-" + lesson.id;
+      const options = lesson.question.options.map(function (option, j) {
+        const radio = el("input", {
+          type: "radio", name: name, value: String(j),
+          on: {
+            change: function () {
+              learn.answers[lesson.id] = { status: option[1], text: option[0] };
+              practiceError.hidden = true;
+            }
+          }
+        });
+        return el("label", { class: "check" }, [radio, el("span", { text: option[0] })]);
+      });
+      questions.appendChild(el("fieldset", { class: "question-set", id: "set-" + lesson.id }, [
+        el("legend", { text: (i + 1) + ". " + lesson.question.text })
+      ].concat(options)));
+    });
+  }
+
+  $("practice-done").addEventListener("click", function () {
+    const mod = learn.module;
+    const missing = mod.lessons.filter(function (lesson) { return !learn.answers[lesson.id]; });
+    if (missing.length > 0) {
+      practiceError.textContent = "Answer every question to see your plan. " + plural(missing.length, "question") + " left.";
+      practiceError.hidden = false;
+      const first = document.querySelector("#set-" + missing[0].id + " input");
+      first.focus();
+      return;
+    }
+    learn.order = planOrder(mod);
+    renderPlan();
+    go("screen-plan");
+  });
+
+  /* ---------------- your plan ---------------- */
+
+  // Lessons the answers show they need come first, then the rest, in module order.
+  function planOrder(mod) {
+    return mod.lessons
+      .map(function (lesson, i) { return { lesson: lesson, answer: learn.answers[lesson.id], i: i }; })
+      .sort(function (a, b) {
+        return STATUS[a.answer.status].rank - STATUS[b.answer.status].rank || a.i - b.i;
+      });
+  }
+
+  function chip(status) {
+    return el("span", { class: "chip " + STATUS[status].chipClass, text: STATUS[status].chip });
+  }
+
+  function renderPlan() {
+    const mod = learn.module;
+    $("plan-title").textContent = "Your plan: " + mod.title;
+
+    const count = { gap: 0, skip: 0, ok: 0 };
+    for (const item of learn.order) count[item.answer.status]++;
+    const parts = [];
+    if (count.gap) parts.push(count.gap + " to start with");
+    if (count.ok) parts.push(count.ok + " you already do");
+    if (count.skip) parts.push(count.skip + " good to know");
+    $("plan-summary").textContent = count.gap
+      ? plural(learn.order.length, "lesson") + ": " + parts.join(", ") + "."
+      : "You already do the basics. Here's how developers do each one, with the code they use.";
+
+    const list = $("plan-list");
+    list.replaceChildren();
+    learn.order.forEach(function (item, i) {
+      list.appendChild(el("li", null, [
+        el("button", { type: "button", class: "plan-item", on: { click: function () { openLesson(i); } } }, [
+          el("span", { class: "plan-name", text: item.lesson.title }),
+          chip(item.answer.status)
+        ])
+      ]));
+    });
+  }
+
+  $("plan-start").addEventListener("click", function () { openLesson(0); });
+
+  /* ---------------- one lesson ---------------- */
+
+  // A lesson linked to a library mistake reuses its explanation, case, sources and fix line.
+  function lessonContent(lesson) {
+    const m = lesson.mistake ? MISTAKE_BY_ID[lesson.mistake] : null;
+    return {
+      why: lesson.why || (m ? m.whatGoesWrong : ""),
+      cases: (m ? [{ text: m.realCase, sources: m.sources }] : []).concat(lesson.cases || []),
+      prompt: lesson.prompt || (m ? m.fixLine : "")
+    };
+  }
+
+  function codeBlock(sample) {
+    const pre = el("pre", { class: "code", tabindex: "0", "aria-label": sample.label }, [el("code", { text: sample.text })]);
+    const status = el("span", { class: "copy-status", role: "status", "aria-live": "polite" });
+    // Risky code gets no Copy button, so nobody pastes it by mistake.
+    const actions = sample.kind === "risky" ? null : el("div", { class: "code-actions" }, [
+      el("button", { type: "button", class: "button small", text: "Copy", on: { click: function () { copyFrom(pre, status); } } }),
+      status
+    ]);
+    return el("figure", { class: "code-block " + sample.kind }, [
+      el("figcaption", null, [
+        el("span", { class: "code-kind", text: CODE_KINDS[sample.kind] }),
+        el("span", { class: "code-label", text: sample.label }),
+        sample.file ? el("span", { class: "code-file", text: sample.file }) : null
+      ]),
+      pre,
+      actions
+    ]);
+  }
+
+  function renderLesson() {
+    const item = learn.order[learn.index];
+    const lesson = item.lesson;
+    const content = lessonContent(lesson);
+    const last = learn.index === learn.order.length - 1;
+
+    $("lesson-progress").textContent = learn.module.title + ": lesson " + (learn.index + 1) + " of " + learn.order.length;
+    $("lesson-title").textContent = lesson.title;
+
+    const promptBox = el("pre", { class: "code prompt-box", tabindex: "0", "aria-label": "Line to give your AI" }, [el("code", { text: content.prompt })]);
+    const promptStatus = el("span", { class: "copy-status", role: "status", "aria-live": "polite" });
+
+    $("lesson-body").replaceChildren(
+      el("div", { class: "answer-note" }, [
+        chip(item.answer.status),
+        el("p", null, [el("strong", { text: "You said: " }), item.answer.text])
+      ]),
+      el("h3", { text: "Why it matters" }),
+      el("p", { text: content.why }),
+      el("h3", { text: "What really happened" }),
+      ...content.cases.map(function (c) {
+        return el("div", { class: "case" }, [el("p", { text: c.text }), sourceList(c.sources)]);
+      }),
+      el("h3", { text: "How to do it" }),
+      el("ol", { class: "steps" }, lesson.steps.map(function (step) { return el("li", { text: step }); })),
+      el("h3", { text: "The code" }),
+      ...lesson.code.map(codeBlock),
+      el("h3", { text: "Tell your AI" }),
+      el("p", { class: "note", text: "Paste this into your prompt, or into your rules file so it applies every time." }),
+      promptBox,
+      el("div", { class: "code-actions" }, [
+        el("button", { type: "button", class: "button small", text: "Copy", on: { click: function () { copyFrom(promptBox, promptStatus); } } }),
+        promptStatus
+      ])
+    );
+
+    $("lesson-prev").hidden = learn.index === 0;
+    $("lesson-next").textContent = last ? "Finish this topic" : "Next lesson";
+  }
+
+  function openLesson(i) {
+    learn.index = i;
+    renderLesson();
+    if (current === "screen-lesson") {
+      window.scrollTo(0, 0);
+      $("lesson-title").focus({ preventScroll: true });
+    } else {
+      go("screen-lesson");
+    }
+  }
+
+  $("lesson-prev").addEventListener("click", function () { openLesson(learn.index - 1); });
+
+  $("lesson-next").addEventListener("click", function () {
+    if (learn.index < learn.order.length - 1) openLesson(learn.index + 1);
+    else showModuleDone();
+  });
+
+  /* ---------------- module finished ---------------- */
+
+  function showModuleDone() {
+    const mod = learn.module;
+    $("done-title").textContent = "You finished: " + mod.title;
+    const lines = mod.lessons.map(function (lesson) { return "- " + lessonContent(lesson).prompt; });
+    $("done-rules").value = "## " + mod.title + " rules\n" + lines.join("\n");
+    $("screen-module-done").querySelector("[role=status]").textContent = "";
+    go("screen-module-done");
+  }
 })();
