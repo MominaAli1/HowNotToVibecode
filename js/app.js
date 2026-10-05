@@ -169,7 +169,155 @@
     showReport();
   });
 
+  /* ---------------- 3. report ---------------- */
+
+  const FIELDS = [
+    { key: "security", name: "Security" },
+    { key: "prompting", name: "Prompting" }
+  ];
+
+  const MISTAKE_BY_ID = {};
+  for (const m of MISTAKES) MISTAKE_BY_ID[m.id] = m;
+
+  function plural(count, word) {
+    return count + " " + word + (count === 1 ? "" : "s");
+  }
+
+  function countByField(matches) {
+    const counts = { security: 0, prompting: 0 };
+    for (const match of matches) counts[MISTAKE_BY_ID[match.id].field]++;
+    return counts;
+  }
+
+  // Only web links are allowed, so a bad library entry can't run code when clicked.
+  function sourceLink(source) {
+    if (!/^https?:\/\//i.test(source.url)) return el("span", { text: source.label });
+    return el("a", { href: source.url, target: "_blank", rel: "noopener noreferrer", text: source.label });
+  }
+
+  function mistakeCard(match) {
+    const m = MISTAKE_BY_ID[match.id];
+    const isFound = match.label === Rules.LABEL_FOUND;
+    return el("article", { class: "card" }, [
+      el("h4", { text: m.title }),
+      el("span", { class: "chip " + (isFound ? "found" : "never"), text: match.label }),
+      el("p", { class: "reason", text: match.reason }),
+      el("h5", { text: "What goes wrong" }),
+      el("p", { text: m.whatGoesWrong }),
+      el("h5", { text: "The real case" }),
+      el("p", { text: m.realCase }),
+      el("h5", { text: m.sources.length === 1 ? "Source" : "Sources" }),
+      el("ul", null, m.sources.map(function (s) { return el("li", null, [sourceLink(s)]); })),
+      el("h5", { text: "How developers catch it" }),
+      el("p", { text: m.howDevsCatch })
+    ]);
+  }
+
   function showReport() {
-    // The report screen comes in the next step.
+    const matches = state.matches;
+    const groups = $("report-groups");
+    const actions = $("report-actions");
+    groups.replaceChildren();
+    actions.replaceChildren();
+
+    if (matches.length === 0) {
+      $("report-summary").textContent = "We didn't find any of the 15 mistakes in what you wrote.";
+      groups.appendChild(el("p", { text: "You can still test yourself on all of them." }));
+      actions.appendChild(el("button", {
+        type: "button", class: "button primary", text: "Take the full quiz (all 15)",
+        on: { click: function () { startQuiz(MISTAKES.map(fullQuizItem)); } }
+      }));
+      go("screen-report");
+      return;
+    }
+
+    const counts = countByField(matches);
+    $("report-summary").textContent =
+      plural(matches.length, "mistake") + ": " + counts.security + " security, " + counts.prompting + " prompting";
+
+    for (const field of FIELDS) {
+      const cards = matches
+        .filter(function (match) { return MISTAKE_BY_ID[match.id].field === field.key; })
+        .map(mistakeCard);
+      if (cards.length === 0) continue;
+      groups.appendChild(el("section", { class: "group", "aria-label": field.name }, [el("h3", { text: field.name })].concat(cards)));
+    }
+
+    actions.appendChild(el("button", {
+      type: "button", class: "button primary", text: "See a better prompt",
+      on: { click: showPrompt }
+    }));
+    go("screen-report");
+  }
+
+  /* ---------------- 4. better prompt ---------------- */
+
+  const SHORT_TEXT_WORDS = 80;
+
+  function betterPrompt(text, matches) {
+    // A short description gets improved in place. A long pasted chat gets a fresh start.
+    const start = Rules.wordCount(text) < SHORT_TEXT_WORDS
+      ? Rules.maskSecrets(text)
+      : "[Describe what you want to build]";
+    // matches are already in library order.
+    const fixes = matches.map(function (match, i) {
+      const m = MISTAKE_BY_ID[match.id];
+      return (i + 1) + ". " + m.title + ": " + m.fixLine;
+    });
+    return start + "\n\nAlso:\n" + fixes.join("\n");
+  }
+
+  const copyStatus = $("copy-status");
+  const promptAfter = $("prompt-after");
+
+  function showPrompt() {
+    $("prompt-before").textContent = Rules.maskSecrets(state.text);
+    promptAfter.value = betterPrompt(state.text, state.matches);
+    copyStatus.textContent = "";
+    go("screen-prompt");
+  }
+
+  function selectPrompt() {
+    promptAfter.focus();
+    promptAfter.select();
+    promptAfter.setSelectionRange(0, promptAfter.value.length);
+  }
+
+  $("copy-prompt").addEventListener("click", function () {
+    let settled = false;
+    const fallback = function () {
+      if (settled) return;
+      settled = true;
+      selectPrompt();
+      copyStatus.textContent = "Selected. Press Ctrl+C (or Cmd+C on a Mac) to copy.";
+    };
+    if (!navigator.clipboard || !navigator.clipboard.writeText) {
+      fallback();
+      return;
+    }
+    copyStatus.textContent = "";
+    // Some browsers never answer the copy request, so don't wait forever.
+    setTimeout(fallback, 1500);
+    navigator.clipboard.writeText(promptAfter.value).then(function () {
+      if (settled) return;
+      settled = true;
+      copyStatus.textContent = "Copied.";
+    }, fallback);
+  });
+
+  $("start-quiz").addEventListener("click", function () {
+    startQuiz(state.matches.map(function (match) {
+      return { mistake: MISTAKE_BY_ID[match.id], reason: match.reason };
+    }));
+  });
+
+  /* ---------------- 5. quiz ---------------- */
+
+  function fullQuizItem(m) {
+    return { mistake: m, reason: null };
+  }
+
+  function startQuiz(items) {
+    // The quiz screen comes in the next step.
   }
 })();

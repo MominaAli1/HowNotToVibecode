@@ -49,6 +49,39 @@
       <button type="button" class="button primary" id="show-mistakes">Show my mistakes</button>
     </section>
 
+    <!-- 3. Report -->
+    <section class="screen" id="screen-report" aria-labelledby="report-title" hidden>
+      <button type="button" class="button back" data-back>Back</button>
+      <h2 id="report-title" tabindex="-1">Your mistakes</h2>
+      <p class="summary" id="report-summary"></p>
+      <div id="report-groups"></div>
+      <div class="actions" id="report-actions"></div>
+    </section>
+
+    <!-- 4. Better prompt -->
+    <section class="screen" id="screen-prompt" aria-labelledby="prompt-title" hidden>
+      <button type="button" class="button back" data-back>Back</button>
+      <h2 id="prompt-title" tabindex="-1">A better prompt</h2>
+      <p class="lead">Your text with a fix for each mistake. Copy it into your AI tool and fill in anything in [square brackets].</p>
+
+      <div class="compare">
+        <div class="compare-col">
+          <h3>What you wrote</h3>
+          <pre class="text-box" id="prompt-before" tabindex="0" aria-label="What you wrote, with secret keys hidden"></pre>
+        </div>
+        <div class="compare-col">
+          <h3><label for="prompt-after">Better prompt</label></h3>
+          <textarea class="text-box" id="prompt-after" readonly rows="14"></textarea>
+          <div class="copy-row">
+            <button type="button" class="button" id="copy-prompt">Copy</button>
+            <p class="note" id="copy-status" role="status" aria-live="polite"></p>
+          </div>
+        </div>
+      </div>
+
+      <button type="button" class="button primary" id="start-quiz">Quiz me on my mistakes</button>
+    </section>
+
   </main>
 
   <script src="js/library.js"></script>
