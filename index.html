@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Stops the page from sending anything over the network, so pasted text stays in the browser. -->
+  <meta http-equiv="Content-Security-Policy" content="connect-src 'none'; object-src 'none'; frame-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta name="referrer" content="no-referrer">
+  <meta name="description" content="Paste a chat with your AI coding tool and see the security and prompting mistakes in it, with real cases, a better prompt and a quiz.">
+  <title>How Not to Vibecode</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main id="app">
+
+    <!-- 1. Input -->
+    <section class="screen" id="screen-input" aria-labelledby="input-title">
+      <h1 id="input-title" tabindex="-1">How Not to Vibecode</h1>
+      <p class="lead">Paste a chat you had with an AI coding tool, or describe what you ask it to make. You'll see the mistakes in it, a better prompt, and a quiz on what you missed.</p>
+
+      <div class="field">
+        <div class="field-head">
+          <label for="input-text">Your chat or description</label>
+          <div class="button-row">
+            <button type="button" class="button small" id="example-chat">Example chat</button>
+            <button type="button" class="button small" id="example-description">Example description</button>
+          </div>
+        </div>
+        <textarea id="input-text" rows="12" spellcheck="false" autocomplete="off" aria-describedby="privacy-note input-error"
+          placeholder="For example: I tell Claude to make a gym app where people sign up and pay monthly"></textarea>
+        <p class="note" id="privacy-note">Nothing you paste leaves your browser.</p>
+        <p class="error" id="input-error" role="alert" hidden></p>
+      </div>
+
+      <button type="button" class="button primary" id="check-it">Check it</button>
+    </section>
+
+    <!-- 2. Confirm features -->
+    <section class="screen" id="screen-features" aria-labelledby="features-title" hidden>
+      <button type="button" class="button back" data-back>Back</button>
+      <h2 id="features-title" tabindex="-1">What does your app do?</h2>
+      <p class="lead">We ticked what we found in your text. Change anything that's wrong, because the mistakes depend on it.</p>
+
+      <fieldset class="features">
+        <legend>Your app</legend>
+        <div id="feature-list"></div>
+      </fieldset>
+
+      <button type="button" class="button primary" id="show-mistakes">Show my mistakes</button>
+    </section>
+
+  </main>
+
+  <script src="js/library.js"></script>
+  <script src="js/rules.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
